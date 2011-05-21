@@ -1,0 +1,29 @@
+= ActsAsFilterable
+
+ActsAsFilterable is a plugin to allow easy filtering of active record models on configured attributes.
+
+== Installation
+
+Run the following command:
+  rails plugin install git://github.com/ygor/acts_as_filterable.git
+
+== Usage
+
+For your model(s) that you want to allow to be filtered, just add the mixin and pass the names of the class methods or scopes that can be used as filters:
+  class Book < ActiveRecord::Base
+    # attributes: author, genre and language
+    ...
+    acts_as_filterable :by_author, :by_genre, :language
+    ...
+    scope :by_category, lambda {|category| where('category = ?', category)}
+    ...
+    def self.by_author(author)
+      where('author = ?', author)
+    end
+  end
+
+Then use the following to filter:
+  @books = Book.filter(:by_author => 'Asimov', :by_genre => 'sci-fi').all # finds all sci-fi books written by Asimov 
+  
+If a filter key does not exist as a method or a scope, an Arel where scope is added instead. For example:
+  @books = Book.filter(:language => 'en').all # finds all books where language LIKE 'en'
