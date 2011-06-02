@@ -1,27 +1,24 @@
 require 'active_record'
 
 module ActsAsFilterable #:nodoc:
-  def self.included(base)
-    base.extend ClassMethods
-  end
+  extend ActiveSupport::Concern
 
   module ClassMethods
-    def acts_as_filterable(*filters)
-      class_inheritable_array :filters
-      self.filters = filters
-      extend ActsAsFilterable::SingletonMethods
-    end
-  end
-
-  module SingletonMethods
-    def filter(options)
-      options.reject {|k, v| !filters.include?(k.to_sym)}.inject(self) do |scope, option|
-        if self.respond_to?(option[0].to_sym)
-          scope.send(option[0].to_sym, option[1])
-        else
-          scope.send(:where, "#{option[0]} LIKE ?", option[1])
+    def acts_as_filterable(*filterables)
+      class_inheritable_array :filterables
+      self.filterables = filterables
+      
+      scope :filtered, lambda {|filters|
+        filters.reject {|k, v| !filterables.include?(k.to_sym)}.inject(self.scoped) do |scope, filter|
+          if columns.map(&:name).include?(filter[0].to_s)
+            scope.send(:where, "#{filter[0]} LIKE ?", filter[1])
+          elsif scope.respond_to?(filter[0].to_sym)
+            scope.send(filter[0].to_sym, filter[1])
+          else
+            scope
+          end
         end
-      end
+      }
     end
   end
 end
